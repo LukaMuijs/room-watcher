@@ -2,13 +2,13 @@ ROOM.nl watcher: stuurt een mail zodra er een nieuwe kamer/woning in Delft
 verschijnt met een huur van maximaal MAX_PER_PERSON euro per persoon.
 
 Instellingen via omgevingsvariabelen:
-  SMTP_USER       Gmail-adres waarmee de mail verstuurd wordt
-  SMTP_PASSWORD   Gmail app-wachtwoord (NIET je gewone wachtwoord)
+  SMTP_USER       Mailadres waarmee de mail verstuurd wordt
+  SMTP_PASSWORD   App-wachtwoord van dat account (NIET je gewone wachtwoord)
   MAIL_TO         Ontvanger(s), komma-gescheiden. Standaard: lukamuijs@outlook.com
   CITY            Standaard: Delft
   MAX_PER_PERSON  Standaard: 650
-  SMTP_HOST       Standaard: smtp.gmail.com
-  SMTP_PORT       Standaard: 465
+  SMTP_HOST       Standaard: smtp-mail.outlook.com (Gmail: smtp.gmail.com)
+  SMTP_PORT       Standaard: 587 (Gmail: 465)
 
 Gebruik:
   python room_watcher.py            # één keer checken (voor cron / GitHub Actions)
@@ -125,9 +125,14 @@ def send_mail(subject, body):
     msg["Subject"] = subject
     msg["From"] = user
     msg["To"] = ", ".join(recipients)
-    host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    port = int(os.environ.get("SMTP_PORT", "465"))
-    with smtplib.SMTP_SSL(host, port, timeout=30) as smtp:
+    host = os.environ.get("SMTP_HOST") or "smtp-mail.outlook.com"
+    port = int(os.environ.get("SMTP_PORT") or "587")
+    if port == 465:
+        smtp = smtplib.SMTP_SSL(host, port, timeout=30)
+    else:
+        smtp = smtplib.SMTP(host, port, timeout=30)
+        smtp.starttls()
+    with smtp:
         smtp.login(user, password)
         smtp.sendmail(user, recipients, msg.as_string())
 
