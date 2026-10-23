@@ -1,0 +1,33 @@
+name: ROOM watcher
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"   # elke 5 minuten (GitHub kan dit soms wat vertragen)
+  workflow_dispatch:         # handmatig starten via de Actions-tab
+
+permissions:
+  contents: write            # nodig om seen.json terug te committen
+
+concurrency:
+  group: room-watcher
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check ROOM
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: python room_watcher.py
+      - name: Save seen.json
+        run: |
+          git config user.name "room-watcher"
+          git config user.email "room-watcher@users.noreply.github.com"
+          git add seen.json
+          git diff --cached --quiet || (git commit -m "Update seen listings" && git push)
