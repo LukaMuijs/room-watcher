@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write            # nodig om seen.json terug te committen
+  issues: write              # nodig om meldingen als issue te plaatsen
 
 concurrency:
   group: room-watcher
@@ -22,8 +23,7 @@ jobs:
           python-version: "3.12"
       - name: Check ROOM
         env:
-          SMTP_USER: ${{ secrets.SMTP_USER }}
-          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python room_watcher.py
       - name: Save seen.json
         run: |
