@@ -2,7 +2,11 @@
 # ROOM.nl watcher: stuurt een mail zodra er een nieuwe kamer/woning in Delft
 # verschijnt met een huur van maximaal MAX_PER_PERSON euro per persoon.
 #
+# Meldingen gaan als GitHub-issue (GitHub mailt je daarover). Wil je liever zelf
+# mailen via SMTP, zet dan SMTP_USER en SMTP_PASSWORD.
+#
 # Instellingen via omgevingsvariabelen:
+#   GITHUB_TOKEN    Wordt door GitHub Actions automatisch ingevuld
 #   SMTP_USER       Mailadres waarmee de mail verstuurd wordt
 #   SMTP_PASSWORD   App-wachtwoord van dat account (NIET je gewone wachtwoord)
 #   MAIL_TO         Ontvanger(s), komma-gescheiden. Standaard: lukamuijs@outlook.com
@@ -138,6 +142,30 @@ def send_mail(subject, body):
         smtp.sendmail(user, recipients, msg.as_string())
 
 
+def create_issue(subject, body):
+    repo = os.environ["GITHUB_REPOSITORY"]
+    owner = os.environ.get("GITHUB_REPOSITORY_OWNER", "")
+    data = json.dumps({"title": subject, "body": f"@{owner}\n\n{body}"}).encode()
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/issues",
+        data=data,
+        method="POST",
+        headers={
+            "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+            "Accept": "application/vnd.github+json",
+            "Content-Type": "application/json",
+        },
+    )
+    urllib.request.urlopen(req, timeout=30).close()
+
+
+def notify(subject, body):
+    if os.environ.get("SMTP_USER"):
+        send_mail(subject, body)
+    else:
+        create_issue(subject, body)
+
+
 def load_seen():
     try:
         return set(json.loads(SEEN_FILE.read_text()))
@@ -160,7 +188,7 @@ def check_once():
     if new:
         body = f"{len(new)} nieuwe woning(en) op ROOM in {CITY} (max €{MAX_PER_PERSON:.0f} p.p.):\n\n"
         body += "\n\n".join(describe(o) for o in new)
-        send_mail(f"ROOM: {len(new)} nieuwe woning(en) in {CITY}", body)
+        notify(f"ROOM: {len(new)} nieuwe woning(en) in {CITY}", body)
         print(body)
     else:
         print(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {len(listings)} advertenties, niks nieuws.")
