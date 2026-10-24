@@ -1,0 +1,35 @@
+name: ROOM zoeken
+
+on:
+  workflow_dispatch:
+
+jobs:
+  zoek:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zoek het adres van de ROOM-lijst
+        shell: python
+        run: |
+          import re, urllib.request, urllib.parse
+          def get(url):
+              req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "*/*"})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return r.status, r.geturl(), r.read().decode("utf-8", "replace")
+              except Exception as e:
+                  return getattr(e, "code", str(e)), url, ""
+          found = set()
+          for page in ["https://www.room.nl/", "https://www.room.nl/aanbod/studentenwoningen",
+                       "https://www.room.nl/en/offerings/to-rent"]:
+              status, final, html = get(page)
+              print("PAGINA", status, page, "->", final, len(html))
+              scripts = re.findall(r'src="([^"]+\.js[^"]*)"', html)
+              found.update(re.findall(r'["\'](/[^"\'\s]*(?:api|json|portal|object)[^"\'\s]*)["\']', html, re.I))
+              for s in scripts[:40]:
+                  url = urllib.parse.urljoin(final, s)
+                  _, _, js = get(url)
+                  hits = re.findall(r'["\'`]([^"\'`\s]{0,80}(?:/api/|/portal/|getallobjects|format/json|graphql)[^"\'`\s]{0,80})["\'`]', js, re.I)
+                  found.update(hits)
+          print("\nGEVONDEN ADRESSEN:")
+          for f in sorted(found):
+              print(" ", f)
