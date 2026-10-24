@@ -11,25 +11,38 @@ jobs:
         shell: python
         run: |
           import re, urllib.request, urllib.parse
+          BASE = "https://www.room.nl"
           def get(url):
               req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0", "Accept": "*/*"})
               try:
                   with urllib.request.urlopen(req, timeout=30) as r:
                       return r.status, r.geturl(), r.read().decode("utf-8", "replace")
               except Exception as e:
-                  return getattr(e, "code", str(e)), url, ""
-          found = set()
-          for page in ["https://www.room.nl/", "https://www.room.nl/aanbod/studentenwoningen",
-                       "https://www.room.nl/en/offerings/to-rent"]:
-              status, final, html = get(page)
-              print("PAGINA", status, page, "->", final, len(html))
-              scripts = re.findall(r'src="([^"]+\.js[^"]*)"', html)
-              found.update(re.findall(r'["\'](/[^"\'\s]*(?:api|json|portal|object)[^"\'\s]*)["\']', html, re.I))
-              for s in scripts[:40]:
-                  url = urllib.parse.urljoin(final, s)
-                  _, _, js = get(url)
-                  hits = re.findall(r'["\'`]([^"\'`\s]{0,80}(?:/api/|/portal/|getallobjects|format/json|graphql)[^"\'`\s]{0,80})["\'`]', js, re.I)
-                  found.update(hits)
-          print("\nGEVONDEN ADRESSEN:")
-          for f in sorted(found):
-              print(" ", f)
+                  body = e.read().decode("utf-8", "replace") if hasattr(e, "read") else ""
+                  return getattr(e, "code", str(e)), url, body
+          status, final, html = get(BASE + "/en/cities")
+          links = sorted(set(re.findall(r'href="([^"]+)"', html)))
+          print("LINKS OP /en/cities:")
+          for l in links:
+              print(" ", l)
+          delft = [l for l in links if "delft" in l.lower()]
+          pages = [BASE + "/en/cities"] + [urllib.parse.urljoin(BASE, l) for l in delft[:2]]
+          scripts = set()
+          for p in pages:
+              s, f, h = get(p)
+              print("\nPAGINA", s, p, "->", f, len(h))
+              scripts.update(urllib.parse.urljoin(f, x) for x in re.findall(r'src="([^"]+\.js[^"]*)"', h))
+          print("\nCODE ROND DE API-ADRESSEN:")
+          for url in sorted(scripts)[:60]:
+              _, _, js = get(url)
+              for word in ["product-search", "GetOverviewItems", "PreferredCities"]:
+                  for m in list(re.finditer(re.escape(word), js))[:2]:
+                      print("---", word)
+                      print(js[max(0, m.start() - 400): m.end() + 400])
+          print("\nPROBEREN:")
+          for path in ["/api/v1/product-search?", "/api/v1/product-search?city=Delft",
+                       "/api/v1/product-search?search=Delft", "/api/v1/Drupal/GetOverviewItems?lang=en",
+                       "/api/v1/PreferredCities"]:
+              s, f, body = get(BASE + path)
+              print("===", s, path)
+              print(body[:1500])
