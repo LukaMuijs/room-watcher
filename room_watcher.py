@@ -9,7 +9,7 @@
 #   GITHUB_TOKEN    Wordt door GitHub Actions automatisch ingevuld
 #   SMTP_USER       Mailadres waarmee de mail verstuurd wordt
 #   SMTP_PASSWORD   App-wachtwoord van dat account (NIET je gewone wachtwoord)
-#   MAIL_TO         Ontvanger(s), komma-gescheiden. Standaard: lukamuijs@outlook.com
+#   MAIL_TO         Ontvanger(s), komma-gescheiden. Standaard: SMTP_USER
 #   CITY            Standaard: Delft
 #   MAX_PER_PERSON  Standaard: 650
 #   SMTP_HOST       Standaard: smtp-mail.outlook.com (Gmail: smtp.gmail.com)
@@ -34,7 +34,7 @@ API_URL = "https://www.roommatch.nl/portal/object/frontend/getallobjects/format/
 DETAIL_URL = "https://www.roommatch.nl/aanbod/studentenwoningen/details/{}"
 SEEN_FILE = Path(__file__).with_name("seen.json")
 
-MAIL_TO = os.environ.get("MAIL_TO") or "lukamuijs@outlook.com"
+MAIL_TO = os.environ.get("MAIL_TO") or "SMTP_USER"
 CITY = os.environ.get("CITY", "Delft")
 MAX_PER_PERSON = float(os.environ.get("MAX_PER_PERSON", "650"))
 
