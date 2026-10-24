@@ -1,20 +1,21 @@
-ROOM.nl watcher: stuurt een mail zodra er een nieuwe kamer/woning in Delft
-verschijnt met een huur van maximaal MAX_PER_PERSON euro per persoon.
-
-Instellingen via omgevingsvariabelen:
-  SMTP_USER       Mailadres waarmee de mail verstuurd wordt
-  SMTP_PASSWORD   App-wachtwoord van dat account (NIET je gewone wachtwoord)
-  MAIL_TO         Ontvanger(s), komma-gescheiden. Standaard: lukamuijs@outlook.com
-  CITY            Standaard: Delft
-  MAX_PER_PERSON  Standaard: 650
-  SMTP_HOST       Standaard: smtp-mail.outlook.com (Gmail: smtp.gmail.com)
-  SMTP_PORT       Standaard: 587 (Gmail: 465)
-
-Gebruik:
-  python room_watcher.py            # één keer checken (voor cron / GitHub Actions)
-  python room_watcher.py --loop 300 # blijven draaien, elke 300 seconden checken
-  python room_watcher.py --debug    # laat de ruwe velden van één advertentie zien
-"""
+#!/usr/bin/env python3
+# ROOM.nl watcher: stuurt een mail zodra er een nieuwe kamer/woning in Delft
+# verschijnt met een huur van maximaal MAX_PER_PERSON euro per persoon.
+#
+# Instellingen via omgevingsvariabelen:
+#   SMTP_USER       Mailadres waarmee de mail verstuurd wordt
+#   SMTP_PASSWORD   App-wachtwoord van dat account (NIET je gewone wachtwoord)
+#   MAIL_TO         Ontvanger(s), komma-gescheiden. Standaard: lukamuijs@outlook.com
+#   CITY            Standaard: Delft
+#   MAX_PER_PERSON  Standaard: 650
+#   SMTP_HOST       Standaard: smtp-mail.outlook.com (Gmail: smtp.gmail.com)
+#   SMTP_PORT       Standaard: 587 (Gmail: 465)
+#
+# Gebruik:
+#   python room_watcher.py            # één keer checken (voor cron / GitHub Actions)
+#   python room_watcher.py --loop 300 # blijven draaien, elke 300 seconden checken
+#   python room_watcher.py --debug    # laat de ruwe velden van één advertentie zien
+#
 import json
 import os
 import re
@@ -35,7 +36,7 @@ MAX_PER_PERSON = float(os.environ.get("MAX_PER_PERSON", "650"))
 
 
 def pick(obj, *paths):
-    """Geef de eerste niet-lege waarde terug voor een lijst mogelijke veldnamen ("a.b" = genest)."""
+    # Geef de eerste niet-lege waarde terug voor een lijst mogelijke veldnamen ("a.b" = genest).
     for path in paths:
         value = obj
         for key in path.split("."):
@@ -71,7 +72,7 @@ def rent_of(obj):
 
 
 def persons_of(obj):
-    """Aantal personen voor deze woning. Valt terug op 1 als het niet te bepalen is."""
+    # Aantal personen voor deze woning. Valt terug op 1 als het niet te bepalen is.
     n = pick(obj, "maxPersons", "maximumAantalPersonen", "aantalPersonen",
              "maxHouseholdSize", "huishoudgrootteMax", "maximumHouseholdSize")
     n = to_float(n)
