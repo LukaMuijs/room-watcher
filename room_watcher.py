@@ -34,7 +34,7 @@ API_URL = "https://www.roommatch.nl/portal/object/frontend/getallobjects/format/
 DETAIL_URL = "https://www.roommatch.nl/aanbod/studentenwoningen/details/{}"
 SEEN_FILE = Path(__file__).with_name("seen.json")
 
-MAIL_TO = os.environ.get("MAIL_TO") or "SMTP_USER"
+MAIL_TO = os.environ.get("MAIL_TO") or os.environ.get("SMTP_USER", "")
 CITY = os.environ.get("CITY", "Delft")
 MAX_PER_PERSON = float(os.environ.get("MAX_PER_PERSON", "650"))
 
@@ -62,8 +62,17 @@ def fetch_listings():
         API_URL,
         headers={"User-Agent": "Mozilla/5.0 (room-watcher)", "Accept": "application/json"},
     )
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = json.load(resp)
+    # ROOMmatch is soms even traag of onbereikbaar: tot 3 keer proberen
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.load(resp)
+            break
+        except (OSError, TimeoutError) as e:
+            if attempt == 2:
+                raise
+            print(f"Poging {attempt + 1} mislukt ({e}), opnieuw proberen...")
+            time.sleep(10)
     return data.get("result", data) if isinstance(data, dict) else data
 
 
