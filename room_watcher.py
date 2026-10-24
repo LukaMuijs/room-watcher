@@ -26,8 +26,8 @@ import urllib.request
 from email.mime.text import MIMEText
 from pathlib import Path
 
-API_URL = "https://www.room.nl/portal/object/frontend/getallobjects/format/json"
-DETAIL_URL = "https://www.room.nl/aanbod/studentenwoningen/details/{}"
+API_URL = "https://www.roommatch.nl/portal/object/frontend/getallobjects/format/json"
+DETAIL_URL = "https://www.roommatch.nl/aanbod/studentenwoningen/details/{}"
 SEEN_FILE = Path(__file__).with_name("seen.json")
 
 MAIL_TO = os.environ.get("MAIL_TO") or "lukamuijs@outlook.com"
@@ -98,7 +98,7 @@ def describe(obj):
     area = pick(obj, "areaDwelling", "oppervlakte")
     closing = pick(obj, "closingDate", "sluitingsdatum")
     url_key = pick(obj, "urlKey")
-    url = DETAIL_URL.format(url_key) if url_key else "https://www.room.nl/aanbod/studentenwoningen"
+    url = DETAIL_URL.format(url_key) if url_key else "https://www.roommatch.nl/aanbod/studentenwoningen"
     lines = [
         f"{kind} - {address}, {city_of(obj)}",
         f"Huur totaal: €{rent:.2f}  |  Personen: {persons}  |  Per persoon: €{rent / persons:.2f}",
@@ -149,6 +149,13 @@ def check_once():
     listings = fetch_listings()
     seen = load_seen()
     new = [o for o in listings if matches(o) and listing_id(o) not in seen]
+
+    # Overzicht in de log, zodat je kunt controleren of huur en personen goed gelezen worden
+    for o in listings:
+        if city_of(o).strip().lower() == CITY.lower():
+            rent = rent_of(o)
+            print(f"  {pick(o, 'street')} {pick(o, 'houseNumber')}: huur {rent}, "
+                  f"personen {persons_of(o)}, past {'JA' if matches(o) else 'nee'}")
 
     if new:
         body = f"{len(new)} nieuwe woning(en) op ROOM in {CITY} (max €{MAX_PER_PERSON:.0f} p.p.):\n\n"
